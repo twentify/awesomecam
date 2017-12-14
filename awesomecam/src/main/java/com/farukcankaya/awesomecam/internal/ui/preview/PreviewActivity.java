@@ -1,5 +1,12 @@
 package com.farukcankaya.awesomecam.internal.ui.preview;
 
+import com.farukcankaya.awesomecam.R;
+import com.farukcankaya.awesomecam.internal.configuration.AwesomeCamConfiguration;
+import com.farukcankaya.awesomecam.internal.ui.BaseAwesomeCamActivity;
+import com.farukcankaya.awesomecam.internal.ui.view.AspectFrameLayout;
+import com.farukcankaya.awesomecam.internal.utils.AwesomeCamImageLoader;
+import com.farukcankaya.awesomecam.internal.utils.Utils;
+
 import android.content.Context;
 import android.content.Intent;
 import android.media.AudioManager;
@@ -21,22 +28,13 @@ import android.widget.TextView;
 
 import java.io.File;
 
-import com.farukcankaya.awesomecam.R;
-import com.farukcankaya.awesomecam.internal.configuration.AwesomeCamConfiguration;
-import com.farukcankaya.awesomecam.internal.ui.BaseAwesomeCamActivity;
-import com.farukcankaya.awesomecam.internal.ui.view.AspectFrameLayout;
-import com.farukcankaya.awesomecam.internal.utils.AwesomeCamImageLoader;
-import com.farukcankaya.awesomecam.internal.utils.Utils;
-
-/**
- * Created by memfis on 7/6/16.
- */
 public class PreviewActivity extends AppCompatActivity implements View.OnClickListener {
 
     private static final String TAG = "PreviewActivity";
 
     protected final static String MEDIA_ACTION_ARG = "media_action_arg";
     protected final static String FILE_PATH_ARG = "file_path_arg";
+    protected final static String HIDE_CAPTURE_BUTTONS_ARG = "hide_capture_buttons_arg";
     protected final static String RESPONSE_CODE_ARG = "response_code_arg";
     private final static String VIDEO_POSITION_ARG = "current_video_position";
     private final static String VIDEO_IS_PLAYED_ARG = "is_played";
@@ -45,6 +43,7 @@ public class PreviewActivity extends AppCompatActivity implements View.OnClickLi
 
     private int mediaAction;
     protected String previewFilePath;
+    protected boolean hideCaptureButtons;
 
     protected SurfaceView surfaceView;
     private FrameLayout photoPreviewContainer;
@@ -147,6 +146,16 @@ public class PreviewActivity extends AppCompatActivity implements View.OnClickLi
                 .putExtra(FILE_PATH_ARG, filePath);
     }
 
+    public static Intent newIntent(Context context,
+                                   @AwesomeCamConfiguration.MediaAction int mediaAction,
+                                   String filePath, boolean hideCaptureButtons) {
+
+        return new Intent(context, PreviewActivity.class)
+                .putExtra(MEDIA_ACTION_ARG, mediaAction)
+                .putExtra(FILE_PATH_ARG, filePath)
+                .putExtra(HIDE_CAPTURE_BUTTONS_ARG, hideCaptureButtons);
+    }
+
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -211,6 +220,7 @@ public class PreviewActivity extends AppCompatActivity implements View.OnClickLi
 
         mediaAction = args.getInt(MEDIA_ACTION_ARG);
         previewFilePath = args.getString(FILE_PATH_ARG);
+        hideCaptureButtons = args.getBoolean(HIDE_CAPTURE_BUTTONS_ARG);
 
         if (mediaAction == AwesomeCamConfiguration.MEDIA_ACTION_VIDEO) {
             displayVideo(savedInstanceState);
@@ -224,6 +234,8 @@ public class PreviewActivity extends AppCompatActivity implements View.OnClickLi
                 displayImage();
             } else finish();
         }
+
+        buttonPanel.setVisibility(hideCaptureButtons ? View.GONE : View.VISIBLE);
     }
 
     @Override

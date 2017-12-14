@@ -1,4 +1,16 @@
 apply plugin: 'com.android.library'
+apply plugin: 'com.jfrog.bintray'
+apply plugin: 'com.github.dcendents.android-maven'
+
+buildscript {
+    repositories {
+        jcenter()
+    }
+    dependencies {
+        classpath 'com.jfrog.bintray.gradle:gradle-bintray-plugin:1.7'
+        classpath 'com.github.dcendents:android-maven-gradle-plugin:1.4.1'
+    }
+}
 
 ext {
     bintrayRepo = 'maven'
@@ -24,6 +36,9 @@ ext {
     allLicenses = ["Apache-2.0"]
 }
 
+version = "${versionName}"
+group = "${publishedGroupId}"
+
 android {
     compileSdkVersion versionSdk
     buildToolsVersion "${versionBuildTools}"
@@ -43,6 +58,87 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
+
+    lintOptions {
+        abortOnError false
+    }
+}
+
+task generateSourcesJar(type: Jar) {
+    from android.sourceSets.main.java.srcDirs
+    classifier 'sources'
+}
+
+task generateJavadocs(type: Javadoc) {
+    failOnError false
+    source = android.sourceSets.main.java.srcDirs
+    classpath += project.files(android.getBootClasspath()
+            .join(File.pathSeparator))
+}
+
+task generateJavadocsJar(type: Jar) {
+    from generateJavadocs.destinationDir
+    classifier 'javadoc'
+}
+
+generateJavadocsJar.dependsOn generateJavadocs
+
+artifacts {
+    archives generateSourcesJar
+    archives generateJavadocsJar
+}
+
+install {
+    repositories.mavenInstaller {
+        pom.project {
+            name "${publishedGroupId}"
+            description "${libraryDescription}"
+            url "${siteUrl}"
+            inceptionYear '2017'
+
+            packaging 'aar'
+            version "${versionName}"
+
+            scm {
+                connection "${gitUrl}"
+                url "${siteUrl}"
+
+            }
+            developers {
+                developer {
+                    name "${developerId}"
+                }
+            }
+        }
+    }
+}
+
+bintray {
+    Properties properties = new Properties()
+    properties.load(project.rootProject.file('local.properties').newDataInputStream())
+    user = properties.getProperty('bintray.user')
+    key = properties.getProperty('bintray.apikey')
+    configurations = ['archives']
+    pkg {
+        repo = bintrayRepo
+        name = bintrayName
+        userOrg = developerId
+        desc = libraryDescription
+        publish = true
+        publicDownloadNumbers = true
+        licenses = ['MIT']
+        labels = ['android', 'camera', 'photo', 'video']
+        websiteUrl = siteUrl
+        issueTrackerUrl = "${siteUrl}/issues"
+        vcsUrl = gitUrl
+        version {
+            name = versionName
+            vcsTag = versionName
+            desc = 'Initial, lets party'
+            released = new Date()
+
+        }
+    }
 }
 
 dependencies {
@@ -55,5 +151,6 @@ dependencies {
     testCompile "junit:junit:${junit}"
 }
 
-apply from: 'https://raw.githubusercontent.com/nuuneoi/JCenter/master/installv1.gradle'
-apply from: 'https://raw.githubusercontent.com/nuuneoi/JCenter/master/bintrayv1.gradle'
+task wrapper(type: Wrapper) {
+    gradleVersion = '2.4'
+}

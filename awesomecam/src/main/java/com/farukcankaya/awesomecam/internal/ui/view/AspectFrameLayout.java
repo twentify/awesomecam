@@ -89,7 +89,7 @@ public class AspectFrameLayout extends FrameLayout {
             getViewTreeObserver().addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
                 @Override
                 public void onGlobalLayout() {
-                    getViewTreeObserver().removeGlobalOnLayoutListener(this);
+                    getViewTreeObserver().removeOnGlobalLayoutListener(this);
 //                    AspectFrameLayout.this.size = size;
 
                     actualPreviewWidth = getMeasuredWidth();

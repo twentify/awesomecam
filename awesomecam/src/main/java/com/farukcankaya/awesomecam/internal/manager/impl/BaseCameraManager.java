@@ -3,7 +3,6 @@ package com.farukcankaya.awesomecam.internal.manager.impl;
 import android.content.Context;
 import android.media.CamcorderProfile;
 import android.media.MediaRecorder;
-import android.os.Build;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Looper;
@@ -90,9 +89,7 @@ abstract class BaseCameraManager<CameraId, SurfaceListener, CameraParameters, Ca
     }
 
     private void stopBackgroundThread() {
-        if (Build.VERSION.SDK_INT > 17) {
-            backgroundThread.quitSafely();
-        } else backgroundThread.quit();
+        backgroundThread.quitSafely();
 
         try {
             backgroundThread.join();

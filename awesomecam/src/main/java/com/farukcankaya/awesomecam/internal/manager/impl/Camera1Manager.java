@@ -3,20 +3,16 @@ package com.farukcankaya.awesomecam.internal.manager.impl;
 import android.content.Context;
 import android.graphics.PixelFormat;
 import android.hardware.Camera;
-import android.media.ExifInterface;
 import android.media.MediaRecorder;
-import android.os.Build;
+import android.os.ParcelFileDescriptor;
 import android.util.Log;
 import android.view.Surface;
 import android.view.SurfaceHolder;
 import android.view.WindowManager;
 
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.util.List;
+import androidx.exifinterface.media.ExifInterface;
 
+import com.anggrayudi.storage.media.MediaFile;
 import com.farukcankaya.awesomecam.internal.configuration.AwesomeCamConfiguration;
 import com.farukcankaya.awesomecam.internal.configuration.ConfigurationProvider;
 import com.farukcankaya.awesomecam.internal.manager.listener.CameraCloseListener;
@@ -25,6 +21,11 @@ import com.farukcankaya.awesomecam.internal.manager.listener.CameraPhotoListener
 import com.farukcankaya.awesomecam.internal.manager.listener.CameraVideoListener;
 import com.farukcankaya.awesomecam.internal.utils.CameraHelper;
 import com.farukcankaya.awesomecam.internal.utils.Size;
+
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.util.List;
 
 /**
  * Created by memfis on 8/14/16.
@@ -41,9 +42,8 @@ public class Camera1Manager extends BaseCameraManager<Integer, SurfaceHolder.Cal
     private static Camera1Manager currentInstance;
 
     private int orientation;
-    private int displayRotation = 0;
 
-    private File outputPath;
+    private MediaFile outputMediaFile;
     private CameraVideoListener videoListener;
     private CameraPhotoListener photoListener;
     private CameraOpenListener<Integer, SurfaceHolder.Callback> cameraOpenListener;
@@ -62,30 +62,17 @@ public class Camera1Manager extends BaseCameraManager<Integer, SurfaceHolder.Cal
                            final CameraOpenListener<Integer, SurfaceHolder.Callback> cameraOpenListener) {
         this.currentCameraId = cameraId;
         this.cameraOpenListener = cameraOpenListener;
-        backgroundHandler.post(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    camera = Camera.open(cameraId);
-                    prepareCameraOutputs();
-                    if (cameraOpenListener != null) {
-                        uiHandler.post(new Runnable() {
-                            @Override
-                            public void run() {
-                                cameraOpenListener.onCameraOpened(cameraId, previewSize, currentInstance);
-                            }
-                        });
-                    }
-                } catch (Exception error) {
-                    Log.d(TAG, "Can't open camera: " + error.getMessage());
-                    if (cameraOpenListener != null) {
-                        uiHandler.post(new Runnable() {
-                            @Override
-                            public void run() {
-                                cameraOpenListener.onCameraOpenError();
-                            }
-                        });
-                    }
+        backgroundHandler.post(() -> {
+            try {
+                camera = Camera.open(cameraId);
+                prepareCameraOutputs();
+                if (cameraOpenListener != null) {
+                    uiHandler.post(() -> cameraOpenListener.onCameraOpened(cameraId, previewSize, currentInstance));
+                }
+            } catch (Exception error) {
+                Log.d(TAG, "Can't open camera: " + error.getMessage());
+                if (cameraOpenListener != null) {
+                    uiHandler.post(() -> cameraOpenListener.onCameraOpenError());
                 }
             }
         });
@@ -93,20 +80,12 @@ public class Camera1Manager extends BaseCameraManager<Integer, SurfaceHolder.Cal
 
     @Override
     public void closeCamera(final CameraCloseListener<Integer> cameraCloseListener) {
-        backgroundHandler.post(new Runnable() {
-            @Override
-            public void run() {
-                if (camera != null) {
-                    camera.release();
-                    camera = null;
-                    if (cameraCloseListener != null) {
-                        uiHandler.post(new Runnable() {
-                            @Override
-                            public void run() {
-                                cameraCloseListener.onCameraClosed(currentCameraId);
-                            }
-                        });
-                    }
+        backgroundHandler.post(() -> {
+            if (camera != null) {
+                camera.release();
+                camera = null;
+                if (cameraCloseListener != null) {
+                    uiHandler.post(() -> cameraCloseListener.onCameraClosed(currentCameraId));
                 }
             }
         });
@@ -118,39 +97,28 @@ public class Camera1Manager extends BaseCameraManager<Integer, SurfaceHolder.Cal
     }
 
     @Override
-    public void takePhoto(File photoFile, CameraPhotoListener cameraPhotoListener) {
-        this.outputPath = photoFile;
+    public void takePhoto(MediaFile photoMediaFile, CameraPhotoListener cameraPhotoListener) {
+        this.outputMediaFile = photoMediaFile;
         this.photoListener = cameraPhotoListener;
-        backgroundHandler.post(new Runnable() {
-            @Override
-            public void run() {
-                setCameraPhotoQuality(camera);
-                camera.takePicture(null, null, currentInstance);
-            }
+        backgroundHandler.post(() -> {
+            setCameraPhotoQuality(camera);
+            camera.takePicture(null, null, currentInstance);
         });
     }
 
     @Override
-    public void startVideoRecord(final File videoFile, CameraVideoListener cameraVideoListener) {
+    public void startVideoRecord(final MediaFile videoMediaFile, CameraVideoListener cameraVideoListener) {
         if (isVideoRecording) return;
 
-        this.outputPath = videoFile;
+        this.outputMediaFile = videoMediaFile;
         this.videoListener = cameraVideoListener;
 
         if (videoListener != null)
-            backgroundHandler.post(new Runnable() {
-                @Override
-                public void run() {
-                    if (prepareVideoRecorder()) {
-                        videoRecorder.start();
-                        isVideoRecording = true;
-                        uiHandler.post(new Runnable() {
-                            @Override
-                            public void run() {
-                                videoListener.onVideoRecordStarted(videoSize);
-                            }
-                        });
-                    }
+            backgroundHandler.post(() -> {
+                if (prepareVideoRecorder()) {
+                    videoRecorder.start();
+                    isVideoRecording = true;
+                    uiHandler.post(() -> videoListener.onVideoRecordStarted(videoSize));
                 }
             });
     }
@@ -158,28 +126,20 @@ public class Camera1Manager extends BaseCameraManager<Integer, SurfaceHolder.Cal
     @Override
     public void stopVideoRecord() {
         if (isVideoRecording)
-            backgroundHandler.post(new Runnable() {
-                @Override
-                public void run() {
+            backgroundHandler.post(() -> {
 
-                    try {
-                        if (videoRecorder != null) videoRecorder.stop();
-                    } catch (Exception ignore) {
-                        // ignore illegal state.
-                        // appear in case time or file size reach limit and stop already called.
-                    }
+                try {
+                    if (videoRecorder != null) videoRecorder.stop();
+                } catch (Exception ignore) {
+                    // ignore illegal state.
+                    // appear in case time or file size reach limit and stop already called.
+                }
 
-                    isVideoRecording = false;
-                    releaseVideoRecorder();
+                isVideoRecording = false;
+                releaseVideoRecorder();
 
-                    if (videoListener != null) {
-                        uiHandler.post(new Runnable() {
-                            @Override
-                            public void run() {
-                                videoListener.onVideoRecordStopped(outputPath);
-                            }
-                        });
-                    }
+                if (videoListener != null) {
+                    uiHandler.post(() -> videoListener.onVideoRecordStopped(outputMediaFile));
                 }
             });
     }
@@ -224,10 +184,7 @@ public class Camera1Manager extends BaseCameraManager<Integer, SurfaceHolder.Cal
 
             List<Size> previewSizes = Size.fromList(camera.getParameters().getSupportedPreviewSizes());
             List<Size> pictureSizes = Size.fromList(camera.getParameters().getSupportedPictureSizes());
-            List<Size> videoSizes;
-            if (Build.VERSION.SDK_INT > 10)
-                videoSizes = Size.fromList(camera.getParameters().getSupportedVideoSizes());
-            else videoSizes = previewSizes;
+            List<Size> videoSizes = Size.fromList(camera.getParameters().getSupportedVideoSizes());
 
             videoSize = CameraHelper.getSizeWithClosestRatio(
                     (videoSizes == null || videoSizes.isEmpty()) ? previewSizes : videoSizes,
@@ -271,7 +228,14 @@ public class Camera1Manager extends BaseCameraManager<Integer, SurfaceHolder.Cal
             videoRecorder.setAudioSamplingRate(camcorderProfile.audioSampleRate);
             videoRecorder.setAudioEncoder(camcorderProfile.audioCodec);
 
-            videoRecorder.setOutputFile(outputPath.toString());
+            try {
+                ParcelFileDescriptor pfd = context.getContentResolver().openFileDescriptor(outputMediaFile.getUri(), "rw");
+                if(pfd != null) {
+                    videoRecorder.setOutputFile(pfd.getFileDescriptor());
+                }
+            } catch (FileNotFoundException e) {
+                e.printStackTrace();
+            }
 
             if (configurationProvider.getVideoFileSize() > 0) {
                 videoRecorder.setMaxFileSize(configurationProvider.getVideoFileSize());
@@ -357,6 +321,7 @@ public class Camera1Manager extends BaseCameraManager<Integer, SurfaceHolder.Cal
                     break;// Landscape right
             }
 
+            int displayRotation = 0;
             if (cameraInfo.facing == Camera.CameraInfo.CAMERA_FACING_FRONT) {
                 displayRotation = (cameraRotationOffset + degrees) % 360;
                 displayRotation = (360 - displayRotation) % 360; // compensate
@@ -366,16 +331,11 @@ public class Camera1Manager extends BaseCameraManager<Integer, SurfaceHolder.Cal
 
             this.camera.setDisplayOrientation(displayRotation);
 
-            if (Build.VERSION.SDK_INT > 13
-                    && (configurationProvider.getMediaAction() == AwesomeCamConfiguration.MEDIA_ACTION_VIDEO
-                    || configurationProvider.getMediaAction() == AwesomeCamConfiguration.MEDIA_ACTION_UNSPECIFIED)) {
+            if (configurationProvider.getMediaAction() == AwesomeCamConfiguration.MEDIA_ACTION_VIDEO || configurationProvider.getMediaAction() == AwesomeCamConfiguration.MEDIA_ACTION_UNSPECIFIED) {
 //                parameters.setRecordingHint(true);
             }
 
-            if (Build.VERSION.SDK_INT > 14
-                    && parameters.isVideoStabilizationSupported()
-                    && (configurationProvider.getMediaAction() == AwesomeCamConfiguration.MEDIA_ACTION_VIDEO
-                    || configurationProvider.getMediaAction() == AwesomeCamConfiguration.MEDIA_ACTION_UNSPECIFIED)) {
+            if (parameters.isVideoStabilizationSupported() && (configurationProvider.getMediaAction() == AwesomeCamConfiguration.MEDIA_ACTION_VIDEO || configurationProvider.getMediaAction() == AwesomeCamConfiguration.MEDIA_ACTION_UNSPECIFIED)) {
                 parameters.setVideoStabilization(true);
             }
 
@@ -397,9 +357,7 @@ public class Camera1Manager extends BaseCameraManager<Integer, SurfaceHolder.Cal
     private void turnPhotoCameraFeaturesOn(Camera camera, Camera.Parameters parameters) {
         if (parameters.getSupportedFocusModes().contains(
                 Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE)) {
-            if (Build.VERSION.SDK_INT > 13)
-                parameters.setFocusMode(Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE);
-            else parameters.setFocusMode(Camera.Parameters.FOCUS_MODE_AUTO);
+            parameters.setFocusMode(Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE);
         }
         camera.setParameters(parameters);
     }
@@ -440,15 +398,13 @@ public class Camera1Manager extends BaseCameraManager<Integer, SurfaceHolder.Cal
     private void setFlashMode(Camera camera, Camera.Parameters parameters, @AwesomeCamConfiguration.FlashMode int flashMode) {
         try {
             switch (flashMode) {
-                case AwesomeCamConfiguration.FLASH_MODE_AUTO:
-                    parameters.setFlashMode(Camera.Parameters.FLASH_MODE_AUTO);
-                    break;
                 case AwesomeCamConfiguration.FLASH_MODE_ON:
                     parameters.setFlashMode(Camera.Parameters.FLASH_MODE_ON);
                     break;
                 case AwesomeCamConfiguration.FLASH_MODE_OFF:
                     parameters.setFlashMode(Camera.Parameters.FLASH_MODE_OFF);
                     break;
+                case AwesomeCamConfiguration.FLASH_MODE_AUTO:
                 default:
                     parameters.setFlashMode(Camera.Parameters.FLASH_MODE_AUTO);
                     break;
@@ -566,16 +522,19 @@ public class Camera1Manager extends BaseCameraManager<Integer, SurfaceHolder.Cal
 
     @Override
     public void onPictureTaken(byte[] bytes, Camera camera) {
-        File pictureFile = outputPath;
-        if (pictureFile == null) {
+        MediaFile pictureMediaFile = outputMediaFile;
+        if (pictureMediaFile == null) {
             Log.d(TAG, "Error creating media file, check storage permissions.");
             return;
         }
 
         try {
-            FileOutputStream fileOutputStream = new FileOutputStream(pictureFile);
-            fileOutputStream.write(bytes);
-            fileOutputStream.close();
+            ParcelFileDescriptor pfd = context.getContentResolver().openFileDescriptor(outputMediaFile.getUri(), "rw");
+            if(pfd != null) {
+                FileOutputStream fileOutputStream = new FileOutputStream(pfd.getFileDescriptor());
+                fileOutputStream.write(bytes);
+                fileOutputStream.close();
+            }
         } catch (FileNotFoundException error) {
             Log.e(TAG, "File not found: " + error.getMessage());
         } catch (IOException error) {
@@ -584,21 +543,8 @@ public class Camera1Manager extends BaseCameraManager<Integer, SurfaceHolder.Cal
             Log.e(TAG, "Error saving file: " + error.getMessage());
         }
 
-        try {
-            ExifInterface exif = new ExifInterface(pictureFile.getAbsolutePath());
-            exif.setAttribute(ExifInterface.TAG_ORIENTATION, "" + getPhotoOrientation(configurationProvider.getSensorPosition()));
-            exif.saveAttributes();
-
-            if (photoListener != null) {
-                uiHandler.post(new Runnable() {
-                    @Override
-                    public void run() {
-                        photoListener.onPhotoTaken(outputPath);
-                    }
-                });
-            }
-        } catch (Throwable error) {
-            Log.e(TAG, "Can't save exif info: " + error.getMessage());
+        if (photoListener != null) {
+            uiHandler.post(() -> photoListener.onPhotoTaken(outputMediaFile));
         }
     }
 }

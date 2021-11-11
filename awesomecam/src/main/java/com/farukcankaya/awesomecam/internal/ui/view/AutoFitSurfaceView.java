@@ -2,9 +2,10 @@ package com.farukcankaya.awesomecam.internal.ui.view;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
-import android.support.annotation.NonNull;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
+
+import androidx.annotation.NonNull;
 
 /**
  * Created by memfis on 7/6/16.
@@ -15,18 +16,16 @@ public class AutoFitSurfaceView extends SurfaceView {
 
     private final static String TAG = "AutoFitSurfaceView";
 
-    private final SurfaceHolder surfaceHolder;
-
     private int ratioWidth;
     private int ratioHeight;
 
     public AutoFitSurfaceView(@NonNull Context context, SurfaceHolder.Callback callback) {
         super(context);
 
-        this.surfaceHolder = getHolder();
+        SurfaceHolder surfaceHolder = getHolder();
 
-        this.surfaceHolder.addCallback(callback);
-        this.surfaceHolder.setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
+        surfaceHolder.addCallback(callback);
+        surfaceHolder.setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
     }
 
     /**

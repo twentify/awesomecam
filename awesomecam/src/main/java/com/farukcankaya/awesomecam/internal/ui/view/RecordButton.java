@@ -5,25 +5,26 @@ import android.content.Context;
 import android.graphics.drawable.Drawable;
 import android.media.MediaActionSound;
 import android.os.Build;
-import android.support.annotation.IntDef;
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
-import android.support.v4.content.ContextCompat;
 import android.util.AttributeSet;
 import android.view.View;
-import android.widget.ImageButton;
 
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
+import androidx.annotation.IntDef;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.appcompat.widget.AppCompatImageButton;
+import androidx.core.content.ContextCompat;
 
 import com.farukcankaya.awesomecam.R;
 import com.farukcankaya.awesomecam.internal.configuration.AwesomeCamConfiguration;
 import com.farukcankaya.awesomecam.internal.utils.Utils;
 
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+
 /**
  * Created by memfis on 7/6/16.
  */
-public class RecordButton extends ImageButton {
+public class RecordButton extends AppCompatImageButton {
 
     public static final int TAKE_PHOTO_STATE = 0;
     public static final int READY_FOR_RECORD_STATE = 1;
@@ -58,7 +59,6 @@ public class RecordButton extends ImageButton {
     private Drawable startRecordDrawable;
     private Drawable stopRecordDrawable;
     private int iconPadding = 8;
-    private int iconPaddingStop = 18;
 
     private RecordButtonListener listener;
     private MinimumRecordCallback minimumRecordCallback;
@@ -85,10 +85,7 @@ public class RecordButton extends ImageButton {
         this.minimumRecordCallback = minimumRecordCallback;
 
 //        setBackground(ContextCompat.getDrawable(context, R.drawable.circle_frame_background_dark));
-        if (Build.VERSION.SDK_INT > 15)
-            setBackground(ContextCompat.getDrawable(context, R.drawable.circle_frame_background));
-        else
-            setBackgroundDrawable(ContextCompat.getDrawable(context, R.drawable.circle_frame_background));
+        setBackground(ContextCompat.getDrawable(context, R.drawable.circle_frame_background));
 
         setIcon();
         setOnClickListener(new RecordClickListener());
@@ -132,6 +129,7 @@ public class RecordButton extends ImageButton {
                 setIconPadding(iconPadding);
             } else if (RECORD_IN_PROGRESS_STATE == currentState) {
                 setImageDrawable(stopRecordDrawable);
+                int iconPaddingStop = 18;
                 setIconPadding(iconPaddingStop);
             }
         } else {
@@ -189,26 +187,14 @@ public class RecordButton extends ImageButton {
                 return;
             } else lastClickTime = System.currentTimeMillis();
 
-            if (Build.VERSION.SDK_INT > 15) {
-                MediaActionSound sound = new MediaActionSound();
-                if (TAKE_PHOTO_STATE == currentState) {
-                    takePhoto(sound);
-                } else if (READY_FOR_RECORD_STATE == currentState) {
-                    startRecording(sound);
-                } else if (RECORD_IN_PROGRESS_STATE == currentState) {
-                    if (minimumRecordCallback == null || minimumRecordCallback.isDurationEnoughToStopRecord()) {
-                        stopRecording(sound);
-                    }
-                }
-            } else {
-                if (TAKE_PHOTO_STATE == currentState) {
-                    takePhoto();
-                } else if (READY_FOR_RECORD_STATE == currentState) {
-                    startRecording();
-                } else if (RECORD_IN_PROGRESS_STATE == currentState) {
-                    if (minimumRecordCallback == null || minimumRecordCallback.isDurationEnoughToStopRecord()) {
-                        stopRecording();
-                    }
+            MediaActionSound sound = new MediaActionSound();
+            if (TAKE_PHOTO_STATE == currentState) {
+                takePhoto(sound);
+            } else if (READY_FOR_RECORD_STATE == currentState) {
+                startRecording(sound);
+            } else if (RECORD_IN_PROGRESS_STATE == currentState) {
+                if (minimumRecordCallback == null || minimumRecordCallback.isDurationEnoughToStopRecord()) {
+                    stopRecording(sound);
                 }
             }
             setIcon();

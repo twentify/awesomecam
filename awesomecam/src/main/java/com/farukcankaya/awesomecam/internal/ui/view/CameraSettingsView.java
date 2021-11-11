@@ -31,12 +31,10 @@ public class CameraSettingsView extends ImageButton {
     public void setEnabled(boolean enabled) {
         super.setEnabled(enabled);
 
-        if (Build.VERSION.SDK_INT > 10) {
-            if (enabled) {
-                setAlpha(1f);
-            } else {
-                setAlpha(0.5f);
-            }
+        if (enabled) {
+            setAlpha(1f);
+        } else {
+            setAlpha(0.5f);
         }
     }
 }

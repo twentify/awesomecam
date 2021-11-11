@@ -5,7 +5,8 @@ import android.media.Image;
 import android.os.Build;
 import android.util.Log;
 
-import java.io.File;
+import com.anggrayudi.storage.media.MediaFile;
+
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -18,7 +19,7 @@ public class ImageSaver implements Runnable {
     private final static String TAG = "ImageSaver";
 
     private final Image image;
-    private final File file;
+    private final MediaFile mediaFile;
     private ImageSaverCallback imageSaverCallback;
 
     public interface ImageSaverCallback {
@@ -27,9 +28,9 @@ public class ImageSaver implements Runnable {
         void onError();
     }
 
-    public ImageSaver(Image image, File file, ImageSaverCallback imageSaverCallback) {
+    public ImageSaver(Image image, MediaFile file, ImageSaverCallback imageSaverCallback) {
         this.image = image;
-        this.file = file;
+        this.mediaFile = file;
         this.imageSaverCallback = imageSaverCallback;
     }
 
@@ -41,7 +42,7 @@ public class ImageSaver implements Runnable {
         buffer.get(bytes);
         FileOutputStream output = null;
         try {
-            output = new FileOutputStream(file);
+            output = (FileOutputStream) mediaFile.openOutputStream();
             output.write(bytes);
             imageSaverCallback.onSuccessFinish();
         } catch (IOException ignore) {

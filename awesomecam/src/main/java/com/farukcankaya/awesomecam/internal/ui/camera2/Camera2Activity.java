@@ -4,9 +4,6 @@ import android.annotation.TargetApi;
 import android.media.CamcorderProfile;
 import android.os.Build;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import com.farukcankaya.awesomecam.internal.configuration.AwesomeCamConfiguration;
 import com.farukcankaya.awesomecam.internal.configuration.ConfigurationProvider;
 import com.farukcankaya.awesomecam.internal.controller.CameraController;
@@ -16,6 +13,9 @@ import com.farukcankaya.awesomecam.internal.ui.BaseAwesomeCamActivity;
 import com.farukcankaya.awesomecam.internal.ui.model.PhotoQualityOption;
 import com.farukcankaya.awesomecam.internal.ui.model.VideoQualityOption;
 import com.farukcankaya.awesomecam.internal.utils.CameraHelper;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Created by memfis on 7/6/16.

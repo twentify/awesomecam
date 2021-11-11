@@ -4,7 +4,7 @@ import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
-import android.os.Build;
+import android.net.Uri;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -63,7 +63,7 @@ public abstract class BaseAwesomeCamActivity<CameraId> extends AwesomeCamCameraA
     protected int videoDuration = -1;
     protected long videoFileSize = -1;
     protected int minimumVideoDuration = -1;
-    protected String filePath = "";
+    protected Uri fileUri;
 
     @MediaActionSwitchView.MediaActionState
     protected int currentMediaActionState;
@@ -75,7 +75,7 @@ public abstract class BaseAwesomeCamActivity<CameraId> extends AwesomeCamCameraA
     private int mediaResultBehaviour = AwesomeCamConfiguration.PREVIEW;
 
     @AwesomeCamConfiguration.MediaQuality
-    protected int newQuality = -1;
+    protected int newQuality = AwesomeCamConfiguration.MEDIA_QUALITY_AUTO;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -139,12 +139,10 @@ public abstract class BaseAwesomeCamActivity<CameraId> extends AwesomeCamCameraA
                     case AwesomeCamConfiguration.CLOSE:
                         mediaResultBehaviour = AwesomeCamConfiguration.CLOSE;
                         break;
-                    case AwesomeCamConfiguration.PREVIEW:
-                        mediaResultBehaviour = AwesomeCamConfiguration.PREVIEW;
-                        break;
                     case AwesomeCamConfiguration.CONTINUE:
                         mediaResultBehaviour = AwesomeCamConfiguration.CONTINUE;
                         break;
+                    case AwesomeCamConfiguration.PREVIEW:
                     default:
                         mediaResultBehaviour = AwesomeCamConfiguration.PREVIEW;
                         break;
@@ -157,16 +155,14 @@ public abstract class BaseAwesomeCamActivity<CameraId> extends AwesomeCamCameraA
                         currentCameraType = CameraSwitchView.CAMERA_TYPE_FRONT;
                         break;
                     case AwesomeCamConfiguration.CAMERA_FACE_REAR:
-                        currentCameraType = CameraSwitchView.CAMERA_TYPE_REAR;
-                        break;
                     default:
                         currentCameraType = CameraSwitchView.CAMERA_TYPE_REAR;
                         break;
                 }
             }
 
-            if (bundle.containsKey(AwesomeCamConfiguration.Arguments.FILE_PATH)) {
-                filePath = bundle.getString(AwesomeCamConfiguration.Arguments.FILE_PATH);
+            if (bundle.containsKey(AwesomeCamConfiguration.Arguments.FILE_URI)) {
+                fileUri = Uri.parse(bundle.getString(AwesomeCamConfiguration.Arguments.FILE_URI));
             }
 
             if (bundle.containsKey(AwesomeCamConfiguration.Arguments.MEDIA_QUALITY)) {
@@ -180,15 +176,13 @@ public abstract class BaseAwesomeCamActivity<CameraId> extends AwesomeCamCameraA
                     case AwesomeCamConfiguration.MEDIA_QUALITY_HIGH:
                         mediaQuality = AwesomeCamConfiguration.MEDIA_QUALITY_HIGH;
                         break;
-                    case AwesomeCamConfiguration.MEDIA_QUALITY_MEDIUM:
-                        mediaQuality = AwesomeCamConfiguration.MEDIA_QUALITY_MEDIUM;
-                        break;
                     case AwesomeCamConfiguration.MEDIA_QUALITY_LOW:
                         mediaQuality = AwesomeCamConfiguration.MEDIA_QUALITY_LOW;
                         break;
                     case AwesomeCamConfiguration.MEDIA_QUALITY_LOWEST:
                         mediaQuality = AwesomeCamConfiguration.MEDIA_QUALITY_LOWEST;
                         break;
+                    case AwesomeCamConfiguration.MEDIA_QUALITY_MEDIUM:
                     default:
                         mediaQuality = AwesomeCamConfiguration.MEDIA_QUALITY_MEDIUM;
                         break;
@@ -207,15 +201,13 @@ public abstract class BaseAwesomeCamActivity<CameraId> extends AwesomeCamCameraA
 
             if (bundle.containsKey(AwesomeCamConfiguration.Arguments.FLASH_MODE))
                 switch (bundle.getInt(AwesomeCamConfiguration.Arguments.FLASH_MODE)) {
-                    case AwesomeCamConfiguration.FLASH_MODE_AUTO:
-                        flashMode = AwesomeCamConfiguration.FLASH_MODE_AUTO;
-                        break;
                     case AwesomeCamConfiguration.FLASH_MODE_ON:
                         flashMode = AwesomeCamConfiguration.FLASH_MODE_ON;
                         break;
                     case AwesomeCamConfiguration.FLASH_MODE_OFF:
                         flashMode = AwesomeCamConfiguration.FLASH_MODE_OFF;
                         break;
+                    case AwesomeCamConfiguration.FLASH_MODE_AUTO:
                     default:
                         flashMode = AwesomeCamConfiguration.FLASH_MODE_AUTO;
                         break;
@@ -262,7 +254,7 @@ public abstract class BaseAwesomeCamActivity<CameraId> extends AwesomeCamCameraA
             builder.setSingleChoiceItems(videoQualities, getVideoOptionCheckedIndex(), getVideoOptionSelectedListener());
             if (getVideoFileSize() > 0)
                 builder.setTitle(String.format(getString(R.string.settings_video_quality_title),
-                        "(Max " + String.valueOf(getVideoFileSize() / (1024 * 1024) + " MB)")));
+                        "(Max " + getVideoFileSize() / (1024 * 1024) + " MB)"));
             else
                 builder.setTitle(String.format(getString(R.string.settings_video_quality_title), ""));
         } else {
@@ -270,23 +262,15 @@ public abstract class BaseAwesomeCamActivity<CameraId> extends AwesomeCamCameraA
             builder.setTitle(R.string.settings_photo_quality_title);
         }
 
-        builder.setPositiveButton(R.string.ok_label, new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialogInterface, int i) {
-                if (newQuality > 0 && newQuality != mediaQuality) {
-                    mediaQuality = newQuality;
-                    dialogInterface.dismiss();
-                    cameraControlPanel.lockControls();
-                    getCameraController().switchQuality();
-                }
-            }
-        });
-        builder.setNegativeButton(R.string.cancel_label, new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialogInterface, int i) {
+        builder.setPositiveButton(R.string.ok_label, (dialogInterface, i) -> {
+            if (newQuality > 0 && newQuality != mediaQuality) {
+                mediaQuality = newQuality;
                 dialogInterface.dismiss();
+                cameraControlPanel.lockControls();
+                getCameraController().switchQuality();
             }
         });
+        builder.setNegativeButton(R.string.cancel_label, (dialogInterface, i) -> dialogInterface.dismiss());
         settingsDialog = builder.create();
         settingsDialog.show();
         WindowManager.LayoutParams layoutParams = new WindowManager.LayoutParams();
@@ -407,8 +391,8 @@ public abstract class BaseAwesomeCamActivity<CameraId> extends AwesomeCamCameraA
     }
 
     @Override
-    public String getFilePath() {
-        return filePath;
+    public Uri getFileUri() {
+        return fileUri;
     }
 
     @Override
@@ -436,7 +420,7 @@ public abstract class BaseAwesomeCamActivity<CameraId> extends AwesomeCamCameraA
 
     @Override
     public void onVideoRecordStart(int width, int height) {
-        cameraControlPanel.onStartVideoRecord(getCameraController().getOutputFile());
+        cameraControlPanel.onStartVideoRecord(getCameraController().getOutputMediaFile());
     }
 
     @Override
@@ -455,20 +439,6 @@ public abstract class BaseAwesomeCamActivity<CameraId> extends AwesomeCamCameraA
         setResult(RESULT_OK);
         finish();
 
-        /*if (mediaResultBehaviour == AwesomeCamConfiguration.PREVIEW) {
-            Intent intent = PreviewActivity.newIntent(this,
-                    getMediaAction(), getCameraController().getOutputFile().toString());
-            startActivityForResult(intent, REQUEST_PREVIEW_CODE);
-        } else if (mediaResultBehaviour == AwesomeCamConfiguration.CONTINUE) {
-            getCameraController().openCamera();
-        } else if (mediaResultBehaviour == AwesomeCamConfiguration.CLOSE) {
-            finish();
-        } else {
-            Intent intent = PreviewActivity.newIntent(this,
-                    getMediaAction(), getCameraController().getOutputFile().toString());
-            startActivityForResult(intent, REQUEST_PREVIEW_CODE);
-        }
-        */
     }
 
     @Override
@@ -482,11 +452,12 @@ public abstract class BaseAwesomeCamActivity<CameraId> extends AwesomeCamCameraA
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
         if (resultCode == RESULT_OK) {
             if (requestCode == REQUEST_PREVIEW_CODE) {
                 if (PreviewActivity.isResultConfirm(data)) {
                     Intent resultIntent = new Intent();
-                    resultIntent.putExtra(AwesomeCamConfiguration.Arguments.FILE_PATH,
+                    resultIntent.putExtra(AwesomeCamConfiguration.Arguments.FILE_URI,
                             PreviewActivity.getMediaFilePatch(data));
                     setResult(RESULT_OK, resultIntent);
                     finish();
@@ -501,7 +472,7 @@ public abstract class BaseAwesomeCamActivity<CameraId> extends AwesomeCamCameraA
     }
 
     private void rotateSettingsDialog(int degrees) {
-        if (settingsDialog != null && settingsDialog.isShowing() && Build.VERSION.SDK_INT > 10) {
+        if (settingsDialog != null && settingsDialog.isShowing()) {
             ViewGroup dialogView = (ViewGroup) settingsDialog.getWindow().getDecorView();
             for (int i = 0; i < dialogView.getChildCount(); i++) {
                 dialogView.getChildAt(i).setRotation(degrees);
@@ -535,20 +506,10 @@ public abstract class BaseAwesomeCamActivity<CameraId> extends AwesomeCamCameraA
     }
 
     protected DialogInterface.OnClickListener getVideoOptionSelectedListener() {
-        return new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialogInterface, int index) {
-                newQuality = ((VideoQualityOption) videoQualities[index]).getMediaQuality();
-            }
-        };
+        return (dialogInterface, index) -> newQuality = ((VideoQualityOption) videoQualities[index]).getMediaQuality();
     }
 
     protected DialogInterface.OnClickListener getPhotoOptionSelectedListener() {
-        return new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialogInterface, int index) {
-                newQuality = ((PhotoQualityOption) photoQualities[index]).getMediaQuality();
-            }
-        };
+        return (dialogInterface, index) -> newQuality = ((PhotoQualityOption) photoQualities[index]).getMediaQuality();
     }
 }

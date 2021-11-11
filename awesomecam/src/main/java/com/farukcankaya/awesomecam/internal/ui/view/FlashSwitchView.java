@@ -4,25 +4,25 @@ import android.content.Context;
 import android.graphics.Color;
 import android.graphics.PorterDuff;
 import android.graphics.drawable.Drawable;
-import android.os.Build;
-import android.support.annotation.ColorInt;
-import android.support.annotation.IntDef;
-import android.support.annotation.NonNull;
-import android.support.v4.content.ContextCompat;
 import android.util.AttributeSet;
 import android.view.View;
-import android.widget.ImageButton;
+
+import androidx.annotation.ColorInt;
+import androidx.annotation.IntDef;
+import androidx.annotation.NonNull;
+import androidx.appcompat.widget.AppCompatImageButton;
+import androidx.core.content.ContextCompat;
+
+import com.farukcankaya.awesomecam.R;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
-
-import com.farukcankaya.awesomecam.R;
 
 
 /**
  * Created by memfis on 7/6/16.
  */
-public class FlashSwitchView extends ImageButton {
+public class FlashSwitchView extends AppCompatImageButton {
 
     @FlashMode
     private int currentMode = FLASH_AUTO;
@@ -31,8 +31,6 @@ public class FlashSwitchView extends ImageButton {
     private Drawable flashOnDrawable;
     private Drawable flashOffDrawable;
     private Drawable flashAutoDrawable;
-
-    private int tintColor = Color.WHITE;
 
     public static final int FLASH_ON = 0;
     public static final int FLASH_OFF = 1;
@@ -75,7 +73,6 @@ public class FlashSwitchView extends ImageButton {
     }
 
     private void setIconsTint(@ColorInt int tintColor) {
-        this.tintColor = tintColor;
         flashOnDrawable.setColorFilter(tintColor, PorterDuff.Mode.MULTIPLY);
         flashOffDrawable.setColorFilter(tintColor, PorterDuff.Mode.MULTIPLY);
         flashAutoDrawable.setColorFilter(tintColor, PorterDuff.Mode.MULTIPLY);
@@ -98,12 +95,10 @@ public class FlashSwitchView extends ImageButton {
     @Override
     public void setEnabled(boolean enabled) {
         super.setEnabled(enabled);
-        if (Build.VERSION.SDK_INT > 10) {
-            if (enabled) {
-                setAlpha(1f);
-            } else {
-                setAlpha(0.5f);
-            }
+        if (enabled) {
+            setAlpha(1f);
+        } else {
+            setAlpha(0.5f);
         }
     }
 

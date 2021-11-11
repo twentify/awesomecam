@@ -5,12 +5,12 @@ import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
-import android.os.Build;
 import android.os.Bundle;
-import android.support.v7.app.AppCompatActivity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+
+import androidx.appcompat.app.AppCompatActivity;
 
 import com.farukcankaya.awesomecam.R;
 import com.farukcankaya.awesomecam.internal.configuration.AwesomeCamConfiguration;
@@ -59,10 +59,7 @@ abstract public class AwesomeCamCameraActivity<CameraId> extends AppCompatActivi
         }
 
         View decorView = getWindow().getDecorView();
-        if (Build.VERSION.SDK_INT > 15) {
-            int uiOptions = View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN;
-            decorView.setSystemUiVisibility(uiOptions);
-        }
+        decorView.setSystemUiVisibility(View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN);
 
         setContentView(R.layout.generic_camera_layout);
 

@@ -2,19 +2,19 @@ package com.farukcankaya.awesomecam.internal.ui.view;
 
 import android.content.Context;
 import android.graphics.drawable.Drawable;
-import android.os.Build;
-import android.support.annotation.IntDef;
-import android.support.v4.content.ContextCompat;
-import android.support.v4.graphics.drawable.DrawableCompat;
-import android.support.v7.widget.AppCompatImageButton;
 import android.util.AttributeSet;
 import android.view.View;
 
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
+import androidx.annotation.IntDef;
+import androidx.appcompat.widget.AppCompatImageButton;
+import androidx.core.content.ContextCompat;
+import androidx.core.graphics.drawable.DrawableCompat;
 
 import com.farukcankaya.awesomecam.R;
 import com.farukcankaya.awesomecam.internal.utils.Utils;
+
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
 
 /**
  * Created by memfis on 6/24/16.
@@ -83,12 +83,10 @@ public class CameraSwitchView extends AppCompatImageButton {
     @Override
     public void setEnabled(boolean enabled) {
         super.setEnabled(enabled);
-        if (Build.VERSION.SDK_INT > 10) {
-            if (enabled) {
-                setAlpha(1f);
-            } else {
-                setAlpha(0.5f);
-            }
+        if (enabled) {
+            setAlpha(1f);
+        } else {
+            setAlpha(0.5f);
         }
     }
 

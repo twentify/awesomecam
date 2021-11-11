@@ -2,8 +2,7 @@ package com.farukcankaya.awesomecam.internal.controller;
 
 import android.os.Bundle;
 
-import java.io.File;
-
+import com.anggrayudi.storage.media.MediaFile;
 import com.farukcankaya.awesomecam.internal.configuration.AwesomeCamConfiguration;
 import com.farukcankaya.awesomecam.internal.manager.CameraManager;
 
@@ -43,7 +42,7 @@ public interface CameraController<CameraId> {
 
     CameraId getCurrentCameraId();
 
-    File getOutputFile();
+    MediaFile getOutputMediaFile();
 
     CameraManager getCameraManager();
 }

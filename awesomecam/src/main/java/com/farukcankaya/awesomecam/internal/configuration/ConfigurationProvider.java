@@ -1,5 +1,7 @@
 package com.farukcankaya.awesomecam.internal.configuration;
 
+import android.net.Uri;
+
 import com.farukcankaya.awesomecam.internal.ui.view.CameraSwitchView;
 
 /**
@@ -32,7 +34,7 @@ public interface ConfigurationProvider {
     @CameraSwitchView.CameraType
     int getCameraFace();
 
-    String getFilePath();
+    Uri getFileUri();
 
     @AwesomeCamConfiguration.MediaResultBehaviour
     int getMediaResultBehaviour();

@@ -1,16 +1,16 @@
 package com.farukcankaya.awesomecam.internal.controller.impl;
 
 import android.annotation.TargetApi;
+import android.app.Activity;
 import android.hardware.camera2.CameraDevice;
 import android.hardware.camera2.CaptureRequest;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
-import android.text.TextUtils;
 import android.util.Log;
 import android.view.TextureView;
 
-import java.io.File;
-
+import com.anggrayudi.storage.media.MediaFile;
 import com.farukcankaya.awesomecam.internal.configuration.AwesomeCamConfiguration;
 import com.farukcankaya.awesomecam.internal.configuration.ConfigurationProvider;
 import com.farukcankaya.awesomecam.internal.controller.CameraController;
@@ -41,7 +41,7 @@ public class Camera2Controller implements CameraController<String>,
     private CameraManager<String, TextureView.SurfaceTextureListener, CaptureRequest.Builder, CameraDevice> camera2Manager;
     private CameraView cameraView;
 
-    private File outputFile;
+    private MediaFile outputMediaFile;
 
     public Camera2Controller(CameraView cameraView, ConfigurationProvider configurationProvider) {
         this.cameraView = cameraView;
@@ -83,14 +83,28 @@ public class Camera2Controller implements CameraController<String>,
 
     @Override
     public void takePhoto() {
-        outputFile = TextUtils.isEmpty(configurationProvider.getFilePath()) ? CameraHelper.getOutputMediaFile(cameraView.getActivity(), AwesomeCamConfiguration.MEDIA_ACTION_PHOTO) : new File(configurationProvider.getFilePath());
-        camera2Manager.takePhoto(outputFile, this);
+        Activity activity = cameraView.getActivity();
+        Uri uri = configurationProvider.getFileUri();
+        if(uri != null) {
+            outputMediaFile = new MediaFile(activity.getApplicationContext(), uri);
+        }
+        else {
+            outputMediaFile = CameraHelper.getOutputMediaFile(activity, AwesomeCamConfiguration.MEDIA_ACTION_PHOTO);
+        }
+        camera2Manager.takePhoto(outputMediaFile, this);
     }
 
     @Override
     public void startVideoRecord() {
-        outputFile = TextUtils.isEmpty(configurationProvider.getFilePath()) ? CameraHelper.getOutputMediaFile(cameraView.getActivity(), AwesomeCamConfiguration.MEDIA_ACTION_VIDEO) : new File(configurationProvider.getFilePath());
-        camera2Manager.startVideoRecord(outputFile, this);
+        Activity activity = cameraView.getActivity();
+        Uri uri = configurationProvider.getFileUri();
+        if(uri != null) {
+            outputMediaFile = new MediaFile(activity.getApplicationContext(), uri);
+        }
+        else {
+            outputMediaFile = CameraHelper.getOutputMediaFile(activity, AwesomeCamConfiguration.MEDIA_ACTION_VIDEO);
+        }
+        camera2Manager.startVideoRecord(outputMediaFile, this);
     }
 
     @Override
@@ -132,8 +146,8 @@ public class Camera2Controller implements CameraController<String>,
     }
 
     @Override
-    public File getOutputFile() {
-        return outputFile;
+    public MediaFile getOutputMediaFile() {
+        return outputMediaFile;
     }
 
     @Override
@@ -166,7 +180,7 @@ public class Camera2Controller implements CameraController<String>,
     }
 
     @Override
-    public void onPhotoTaken(File photoFile) {
+    public void onPhotoTaken(MediaFile photoMediaFile) {
         cameraView.onPhotoTaken();
     }
 
@@ -180,7 +194,7 @@ public class Camera2Controller implements CameraController<String>,
     }
 
     @Override
-    public void onVideoRecordStopped(File videoFile) {
+    public void onVideoRecordStopped(MediaFile videoMediaFile) {
         cameraView.onVideoRecordStop();
     }
 

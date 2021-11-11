@@ -3,23 +3,22 @@ package com.farukcankaya.awesomecam.internal.ui.view;
 import android.content.Context;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
-import android.os.Build;
+import android.net.Uri;
 import android.os.FileObserver;
 import android.os.Handler;
 import android.os.Looper;
 import android.util.AttributeSet;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 
-import java.io.File;
-import java.util.concurrent.TimeUnit;
-
+import com.anggrayudi.storage.media.MediaFile;
 import com.farukcankaya.awesomecam.R;
 import com.farukcankaya.awesomecam.internal.configuration.AwesomeCamConfiguration;
 import com.farukcankaya.awesomecam.internal.utils.DateTimeUtils;
+
+import java.util.concurrent.TimeUnit;
 
 /**
  * Created by memfis on 7/6/16.
@@ -45,8 +44,6 @@ public class CameraControlPanel extends RelativeLayout
     private SettingsClickListener settingsClickListener;
 
     private TimerTaskBase countDownTimer;
-    private long maxVideoFileSize = 0;
-    private String mediaFilePath;
     private long recordDuration = 0;
 
     public interface SettingsClickListener {
@@ -95,11 +92,8 @@ public class CameraControlPanel extends RelativeLayout
         setOnMediaActionStateChangeListener(onMediaActionStateChangeListener);
         setFlashModeSwitchListener(flashModeSwitchListener);
         setRecordButtonListener(recordButtonListener);
-        settingsButton.setOnClickListener(new OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                if (settingsClickListener != null) settingsClickListener.onSettingsClick();
-            }
+        settingsButton.setOnClickListener(view -> {
+            if (settingsClickListener != null) settingsClickListener.onSettingsClick();
         });
 
         if (hasFlash)
@@ -141,12 +135,10 @@ public class CameraControlPanel extends RelativeLayout
         flashSwitchView.setFlashMode(flashMode);
     }
 
-    public void setMediaFilePath(final File mediaFile) {
-        this.mediaFilePath = mediaFile.toString();
+    public void setMediaFileUri(final Uri uri) {
     }
 
     public void setMaxVideoFileSize(long maxVideoFileSize) {
-        this.maxVideoFileSize = maxVideoFileSize;
     }
 
     public void setMaxVideoDuration(int maxVideoDurationInMillis) {
@@ -174,13 +166,11 @@ public class CameraControlPanel extends RelativeLayout
     }
 
     public void rotateControls(int rotation) {
-        if (Build.VERSION.SDK_INT > 10) {
-            cameraSwitchView.setRotation(rotation);
-            mediaActionSwitchView.setRotation(rotation);
-            flashSwitchView.setRotation(rotation);
-            recordDurationText.setRotation(rotation);
-            recordSizeText.setRotation(rotation);
-        }
+        cameraSwitchView.setRotation(rotation);
+        mediaActionSwitchView.setRotation(rotation);
+        flashSwitchView.setRotation(rotation);
+        recordDurationText.setRotation(rotation);
+        recordSizeText.setRotation(rotation);
     }
 
     public void setOnMediaActionStateChangeListener(MediaActionSwitchView.OnMediaActionStateChangeListener onMediaActionStateChangeListener) {
@@ -209,34 +199,8 @@ public class CameraControlPanel extends RelativeLayout
             recordButtonListener.onTakePhotoButtonPressed();
     }
 
-    public void onStartVideoRecord(final File mediaFile) {
-        setMediaFilePath(mediaFile);
-        if (maxVideoFileSize > 0) {
-            recordSizeText.setText("1Mb" + " / " + maxVideoFileSize / (1024 * 1024) + "Mb");
-            recordSizeText.setVisibility(VISIBLE);
-            try {
-                fileObserver = new FileObserver(this.mediaFilePath) {
-                    private long lastUpdateSize = 0;
-
-                    @Override
-                    public void onEvent(int event, String path) {
-                        final long fileSize = mediaFile.length() / (1024 * 1024);
-                        if ((fileSize - lastUpdateSize) >= 1) {
-                            lastUpdateSize = fileSize;
-                            recordSizeText.post(new Runnable() {
-                                @Override
-                                public void run() {
-                                    recordSizeText.setText(fileSize + "Mb" + " / " + maxVideoFileSize / (1024 * 1024) + "Mb");
-                                }
-                            });
-                        }
-                    }
-                };
-                fileObserver.startWatching();
-            } catch (Exception e) {
-                Log.e("FileObserver", "setMediaFilePath: ", e);
-            }
-        }
+    public void onStartVideoRecord(final MediaFile mediaFile) {
+        setMediaFileUri(mediaFile.getUri());
         countDownTimer.start();
 
     }
@@ -293,7 +257,7 @@ public class CameraControlPanel extends RelativeLayout
             onMediaActionStateChangeListener.onMediaActionChanged(this.mediaActionState);
     }
 
-    abstract class TimerTaskBase {
+    abstract static class TimerTaskBase {
         Handler handler = new Handler(Looper.getMainLooper());
         TextView timerView;
         boolean alive = false;
@@ -311,7 +275,7 @@ public class CameraControlPanel extends RelativeLayout
 
     private class CountdownTask extends TimerTaskBase implements Runnable {
 
-        private int maxDurationMilliseconds = 0;
+        private int maxDurationMilliseconds;
 
         public CountdownTask(TextView timerView, int maxDurationMilliseconds) {
             super(timerView);

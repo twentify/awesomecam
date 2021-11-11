@@ -1,10 +1,12 @@
 package com.farukcankaya.awesomecam.internal.configuration;
 
 import android.app.Activity;
-import android.support.annotation.IntDef;
-import android.support.annotation.IntRange;
-import android.support.annotation.NonNull;
-import android.support.v4.app.Fragment;
+import android.net.Uri;
+
+import androidx.annotation.IntDef;
+import androidx.annotation.IntRange;
+import androidx.annotation.NonNull;
+import androidx.fragment.app.Fragment;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -58,7 +60,7 @@ public final class AwesomeCamConfiguration {
         String MINIMUM_VIDEO_DURATION = "io.memfis19.annca.minimum.video_duration";
         String VIDEO_FILE_SIZE = "io.memfis19.annca.camera_video_file_size";
         String FLASH_MODE = "io.memfis19.annca.camera_flash_mode";
-        String FILE_PATH = "io.memfis19.annca.camera_video_file_path";
+        String FILE_URI = "io.memfis19.annca.camera_video_file_uri";
         String CAMERA_FACE = "io.memfis19.annca.camera_face";
         String MEDIA_RESULT_BEHAVIOUR = "io.memfis19.annca.media_result_behaviour";
         String IS_PREVIEW_REQUIRE_CONFIRMATION = "io.memfis19.annca.is_preview_require_confirmation";
@@ -107,16 +109,16 @@ public final class AwesomeCamConfiguration {
     private Activity activity = null;
     private Fragment fragment = null;
 
-    private int requestCode = -1;
+    private int requestCode;
 
     @MediaAction
-    private int mediaAction = -1;
+    private int mediaAction = MEDIA_ACTION_UNSPECIFIED;
 
     @MediaResultBehaviour
     private int mediaResultBehaviour = PREVIEW;
 
     @MediaQuality
-    private int mediaQuality = -1;
+    private int mediaQuality = AwesomeCamConfiguration.MEDIA_QUALITY_AUTO;
 
     @CameraFace
     private int cameraFace = CAMERA_FACE_REAR;
@@ -127,7 +129,7 @@ public final class AwesomeCamConfiguration {
 
     private int minimumVideoDuration = -1;
 
-    private String outPutFilePath = "";
+    private Uri outPutFileUri;
 
     private boolean isRequireConfirmation = false;
 
@@ -172,8 +174,8 @@ public final class AwesomeCamConfiguration {
             return this;
         }
         
-        public Builder setOutPutFilePath(String outPutFilePath) {
-            awesomeCamConfiguration.outPutFilePath = outPutFilePath;
+        public Builder setOutPutFileUri(Uri outPutFileUri) {
+            awesomeCamConfiguration.outPutFileUri = outPutFileUri;
             return this;
         }
 
@@ -260,8 +262,8 @@ public final class AwesomeCamConfiguration {
         return mediaResultBehaviour;
     }
 
-    public String getOutPutFilePath() {
-        return outPutFilePath;
+    public Uri getOutPutFileUri() {
+        return outPutFileUri;
     }
 
     public boolean isRequireConfirmation() {

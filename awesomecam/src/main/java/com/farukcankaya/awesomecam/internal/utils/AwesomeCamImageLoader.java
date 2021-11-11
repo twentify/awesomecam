@@ -5,17 +5,21 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Matrix;
 import android.graphics.Point;
-import android.media.ExifInterface;
-import android.os.Build;
+import android.net.Uri;
 import android.os.Handler;
 import android.os.Looper;
+import android.os.ParcelFileDescriptor;
 import android.os.Process;
-import android.support.annotation.NonNull;
 import android.view.Display;
 import android.view.ViewTreeObserver;
 import android.view.WindowManager;
 import android.widget.ImageView;
 
+import androidx.annotation.NonNull;
+import androidx.exifinterface.media.ExifInterface;
+
+import java.io.FileDescriptor;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 
 /**
@@ -25,8 +29,8 @@ public final class AwesomeCamImageLoader {
 
     private static final String TAG = "AwesomeCamImageLoader";
 
-    private Context context;
-    private String url;
+    private final Context context;
+    private Uri uri;
 
     private AwesomeCamImageLoader(Context context) {
         this.context = context;
@@ -40,8 +44,8 @@ public final class AwesomeCamImageLoader {
             awesomeCamImageLoader = new AwesomeCamImageLoader(context);
         }
 
-        public Builder load(String url) {
-            awesomeCamImageLoader.url = url;
+        public Builder load(Uri uri) {
+            awesomeCamImageLoader.uri = uri;
             return this;
         }
 
@@ -56,7 +60,7 @@ public final class AwesomeCamImageLoader {
             public boolean onPreDraw() {
                 target.getViewTreeObserver().removeOnPreDrawListener(this);
 
-                new ImageLoaderThread(target, url).start();
+                new ImageLoaderThread(target, uri).start();
 
                 return true;
             }
@@ -66,12 +70,12 @@ public final class AwesomeCamImageLoader {
     private class ImageLoaderThread extends Thread {
 
         private ImageView target;
-        private String url;
+        private Uri uri;
         private Handler mainHandler = new Handler(Looper.getMainLooper());
 
-        private ImageLoaderThread(ImageView target, String url) {
+        private ImageLoaderThread(ImageView target, Uri uri) {
             this.target = target;
-            this.url = url;
+            this.uri = uri;
         }
 
         @Override
@@ -84,35 +88,28 @@ public final class AwesomeCamImageLoader {
             int imageViewHeight;
             int imageViewWidth;
 
-            if (Build.VERSION.SDK_INT < 13) {
-                imageViewHeight = display.getHeight();
-                imageViewWidth = display.getWidth();
-            } else {
-                Point size = new Point();
-                display.getSize(size);
-                imageViewHeight = size.y;
-                imageViewWidth = size.x;
+            Point size = new Point();
+            display.getSize(size);
+            imageViewHeight = size.y;
+            imageViewWidth = size.x;
+
+            FileDescriptor fd = null;
+            try {
+                ParcelFileDescriptor pfd = context.getContentResolver().openFileDescriptor(uri, "rw");
+                fd = pfd.getFileDescriptor();
+            } catch (FileNotFoundException e) {
+                e.printStackTrace();
             }
 
-//            int imageViewHeight = target.getMeasuredHeight();
-//            int imageViewWidth = target.getMeasuredWidth();
+            Bitmap decodedBitmap = decodeSampledBitmapFromResource(fd, imageViewWidth, imageViewHeight);
+            final Bitmap resultBitmap = rotateBitmap(decodedBitmap, getExifOrientation(fd));
 
-            Bitmap decodedBitmap = decodeSampledBitmapFromResource(url, imageViewWidth, imageViewHeight);
-            final Bitmap resultBitmap = rotateBitmap(decodedBitmap, getExifOrientation());
-
-            mainHandler.post(new Runnable() {
-                @Override
-                public void run() {
-                    target.setImageBitmap(resultBitmap);
-                }
-            });
+            mainHandler.post(() -> target.setImageBitmap(resultBitmap));
         }
 
         private Bitmap rotateBitmap(Bitmap bitmap, int orientation) {
             Matrix matrix = new Matrix();
             switch (orientation) {
-                case ExifInterface.ORIENTATION_NORMAL:
-                    return bitmap;
                 case ExifInterface.ORIENTATION_FLIP_HORIZONTAL:
                     matrix.setScale(-1, 1);
                     break;
@@ -137,6 +134,7 @@ public final class AwesomeCamImageLoader {
                 case ExifInterface.ORIENTATION_ROTATE_270:
                     matrix.setRotate(-90);
                     break;
+                case ExifInterface.ORIENTATION_NORMAL:
                 default:
                     return bitmap;
             }
@@ -150,32 +148,30 @@ public final class AwesomeCamImageLoader {
             }
         }
 
-        private int getExifOrientation() {
+        private int getExifOrientation(FileDescriptor fd) {
             ExifInterface exif = null;
             try {
-                exif = new ExifInterface(url);
+                exif = new ExifInterface(fd);
             } catch (IOException ignore) {
             }
             return exif == null ? ExifInterface.ORIENTATION_UNDEFINED :
                     exif.getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_UNDEFINED);
         }
 
-        private Bitmap decodeSampledBitmapFromResource(String url,
+        private Bitmap decodeSampledBitmapFromResource(FileDescriptor fd,
                                                        int requestedWidth, int requestedHeight) {
-
             final BitmapFactory.Options options = new BitmapFactory.Options();
             options.inJustDecodeBounds = true;
-            BitmapFactory.decodeFile(url, options);
+            BitmapFactory.decodeFileDescriptor(fd, null, options);
 
             options.inSampleSize = calculateInSampleSize(options, requestedWidth, requestedHeight);
             options.inJustDecodeBounds = false;
             options.inPreferredConfig = Bitmap.Config.RGB_565;
-            return BitmapFactory.decodeFile(url, options);
+            return BitmapFactory.decodeFileDescriptor(fd, null, options);
         }
 
         private int calculateInSampleSize(BitmapFactory.Options options,
                                           int requestedWidth, int requestedHeight) {
-
             final int height = options.outHeight;
             final int width = options.outWidth;
             int inSampleSize = 1;

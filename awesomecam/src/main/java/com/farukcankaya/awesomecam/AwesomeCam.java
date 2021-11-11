@@ -3,9 +3,11 @@ package com.farukcankaya.awesomecam;
 import android.Manifest;
 import android.app.Activity;
 import android.content.Intent;
-import android.support.annotation.IntRange;
-import android.support.annotation.RequiresPermission;
-import android.support.v4.app.Fragment;
+import android.net.Uri;
+
+import androidx.annotation.IntRange;
+import androidx.annotation.RequiresPermission;
+import androidx.fragment.app.Fragment;
 
 import com.farukcankaya.awesomecam.internal.configuration.AwesomeCamConfiguration;
 import com.farukcankaya.awesomecam.internal.ui.camera.Camera1Activity;
@@ -68,9 +70,14 @@ public class AwesomeCam {
 
         cameraIntent.putExtra(AwesomeCamConfiguration.Arguments.REQUEST_CODE, awesomeCamConfiguration.getRequestCode());
         cameraIntent.putExtra(AwesomeCamConfiguration.Arguments.CAMERA_FACE, awesomeCamConfiguration.getCameraFace());
-        cameraIntent.putExtra(AwesomeCamConfiguration.Arguments.FILE_PATH, awesomeCamConfiguration.getOutPutFilePath());
         cameraIntent.putExtra(AwesomeCamConfiguration.Arguments.MEDIA_RESULT_BEHAVIOUR, awesomeCamConfiguration.getMediaResultBehaviour());
         cameraIntent.putExtra(AwesomeCamConfiguration.Arguments.IS_PREVIEW_REQUIRE_CONFIRMATION, awesomeCamConfiguration.isRequireConfirmation());
+        cameraIntent.putExtra(AwesomeCamConfiguration.Arguments.FLASH_MODE, awesomeCamConfiguration.getFlashMode());
+
+        Uri uri = awesomeCamConfiguration.getOutPutFileUri();
+        if(uri != null) {
+            cameraIntent.putExtra(AwesomeCamConfiguration.Arguments.FILE_URI, String.valueOf(uri));
+        }
 
         if (awesomeCamConfiguration.getMediaAction() > 0)
             cameraIntent.putExtra(AwesomeCamConfiguration.Arguments.MEDIA_ACTION, awesomeCamConfiguration.getMediaAction());
@@ -87,10 +94,7 @@ public class AwesomeCam {
         if (awesomeCamConfiguration.getMinimumVideoDuration() > 0)
             cameraIntent.putExtra(AwesomeCamConfiguration.Arguments.MINIMUM_VIDEO_DURATION, awesomeCamConfiguration.getMinimumVideoDuration());
 
-        cameraIntent.putExtra(AwesomeCamConfiguration.Arguments.FLASH_MODE, awesomeCamConfiguration.getFlashMode());
-
         if (awesomeCamConfiguration.getFragment() != null) {
-
             awesomeCamConfiguration.getFragment().startActivityForResult(cameraIntent, awesomeCamConfiguration.getRequestCode());
         } else {
             awesomeCamConfiguration.getActivity().startActivityForResult(cameraIntent, awesomeCamConfiguration.getRequestCode());

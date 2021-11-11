@@ -1,7 +1,6 @@
 package com.farukcankaya.awesomecam.internal.manager.listener;
 
-import java.io.File;
-
+import com.anggrayudi.storage.media.MediaFile;
 import com.farukcankaya.awesomecam.internal.utils.Size;
 
 /**
@@ -10,7 +9,7 @@ import com.farukcankaya.awesomecam.internal.utils.Size;
 public interface CameraVideoListener {
     void onVideoRecordStarted(Size videoSize);
 
-    void onVideoRecordStopped(File videoFile);
+    void onVideoRecordStopped(MediaFile videoFile);
 
     void onVideoRecordError();
 }

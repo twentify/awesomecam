@@ -7,11 +7,15 @@ import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.CameraManager;
 import android.media.CamcorderProfile;
 import android.os.Build;
-import android.os.Environment;
 import android.text.TextUtils;
 import android.util.Log;
 
-import java.io.File;
+import com.anggrayudi.storage.file.MimeType;
+import com.anggrayudi.storage.media.FileDescription;
+import com.anggrayudi.storage.media.MediaFile;
+import com.anggrayudi.storage.media.MediaStoreCompat;
+import com.farukcankaya.awesomecam.internal.configuration.AwesomeCamConfiguration;
+
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -19,8 +23,6 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
-
-import com.farukcankaya.awesomecam.internal.configuration.AwesomeCamConfiguration;
 
 /**
  * Created by memfis on 7/6/16.
@@ -37,8 +39,7 @@ public final class CameraHelper {
     }
 
     public static boolean hasCamera(Context context) {
-        return context.getPackageManager().hasSystemFeature(PackageManager.FEATURE_CAMERA) ||
-                context.getPackageManager().hasSystemFeature(PackageManager.FEATURE_CAMERA_FRONT);
+        return context.getPackageManager().hasSystemFeature(PackageManager.FEATURE_CAMERA_ANY);
     }
 
     @TargetApi(Build.VERSION_CODES.LOLLIPOP)
@@ -72,25 +73,13 @@ public final class CameraHelper {
         }
     }
 
-    public static File getOutputMediaFile(Context context, @AwesomeCamConfiguration.MediaAction int mediaAction) {
-        File mediaStorageDir = new File(Environment.getExternalStoragePublicDirectory(
-                Environment.DIRECTORY_PICTURES), context.getPackageName());
-
-        if (!mediaStorageDir.exists()) {
-            if (!mediaStorageDir.mkdirs()) {
-                Log.d(TAG, "Failed to create directory.");
-                return null;
-            }
-        }
-
+    public static MediaFile getOutputMediaFile(Context context, @AwesomeCamConfiguration.MediaAction int mediaAction) {
         String timeStamp = new SimpleDateFormat("yyyy_MM_dd_HH_mm_ss").format(new Date());
-        File mediaFile;
+        MediaFile mediaFile;
         if (mediaAction == AwesomeCamConfiguration.MEDIA_ACTION_PHOTO) {
-            mediaFile = new File(mediaStorageDir.getPath() + File.separator +
-                    "IMG_" + timeStamp + ".jpg");
+            mediaFile = MediaStoreCompat.createImage(context, new FileDescription("IMG_" + timeStamp + ".jpg", "", MimeType.IMAGE));
         } else if (mediaAction == AwesomeCamConfiguration.MEDIA_ACTION_VIDEO) {
-            mediaFile = new File(mediaStorageDir.getPath() + File.separator +
-                    "VID_" + timeStamp + ".mp4");
+            mediaFile = MediaStoreCompat.createVideo(context, new FileDescription("VID_" + timeStamp + ".mp4", "", MimeType.VIDEO));
         } else {
             return null;
         }
@@ -191,23 +180,21 @@ public final class CameraHelper {
         Size optimalSize = null;
         double minDiff = Double.MAX_VALUE;
 
-        int targetHeight = height;
-
         for (Size size : sizes) {
             double ratio = (double) size.getWidth() / size.getHeight();
             if (Math.abs(ratio - targetRatio) > ASPECT_TOLERANCE) continue;
-            if (Math.abs(size.getHeight() - targetHeight) < minDiff) {
+            if (Math.abs(size.getHeight() - height) < minDiff) {
                 optimalSize = size;
-                minDiff = Math.abs(size.getHeight() - targetHeight);
+                minDiff = Math.abs(size.getHeight() - height);
             }
         }
 
         if (optimalSize == null) {
             minDiff = Double.MAX_VALUE;
             for (Size size : sizes) {
-                if (Math.abs(size.getHeight() - targetHeight) < minDiff) {
+                if (Math.abs(size.getHeight() - height) < minDiff) {
                     optimalSize = size;
-                    minDiff = Math.abs(size.getHeight() - targetHeight);
+                    minDiff = Math.abs(size.getHeight() - height);
                 }
             }
         }
@@ -224,8 +211,6 @@ public final class CameraHelper {
         Size optimalSize = null;
         double minDiff = Double.MAX_VALUE;
 
-        int targetHeight = height;
-
         for (Size size : sizes) {
             if (size.getWidth() == width && size.getHeight() == height)
                 return size;
@@ -235,18 +220,18 @@ public final class CameraHelper {
             if (Math.abs(ratio - targetRatio) < MIN_TOLERANCE) MIN_TOLERANCE = ratio;
             else continue;
 
-            if (Math.abs(size.getHeight() - targetHeight) < minDiff) {
+            if (Math.abs(size.getHeight() - height) < minDiff) {
                 optimalSize = size;
-                minDiff = Math.abs(size.getHeight() - targetHeight);
+                minDiff = Math.abs(size.getHeight() - height);
             }
         }
 
         if (optimalSize == null) {
             minDiff = Double.MAX_VALUE;
             for (Size size : sizes) {
-                if (Math.abs(size.getHeight() - targetHeight) < minDiff) {
+                if (Math.abs(size.getHeight() - height) < minDiff) {
                     optimalSize = size;
-                    minDiff = Math.abs(size.getHeight() - targetHeight);
+                    minDiff = Math.abs(size.getHeight() - height);
                 }
             }
         }
@@ -263,25 +248,21 @@ public final class CameraHelper {
         Size optimalSize = null;
         double minDiff = Double.MAX_VALUE;
 
-        int targetHeight = height;
-
         for (Size size : sizes) {
-//            if (size.getWidth() == width && size.getHeight() == height)
-//                return size;
             double ratio = (double) size.getWidth() / size.getHeight();
             if (Math.abs(ratio - targetRatio) > ASPECT_TOLERANCE) continue;
-            if (Math.abs(size.getHeight() - targetHeight) < minDiff) {
+            if (Math.abs(size.getHeight() - height) < minDiff) {
                 optimalSize = size;
-                minDiff = Math.abs(size.getHeight() - targetHeight);
+                minDiff = Math.abs(size.getHeight() - height);
             }
         }
 
         if (optimalSize == null) {
             minDiff = Double.MAX_VALUE;
             for (Size size : sizes) {
-                if (Math.abs(size.getHeight() - targetHeight) < minDiff) {
+                if (Math.abs(size.getHeight() - height) < minDiff) {
                     optimalSize = size;
-                    minDiff = Math.abs(size.getHeight() - targetHeight);
+                    minDiff = Math.abs(size.getHeight() - height);
                 }
             }
         }
@@ -298,29 +279,25 @@ public final class CameraHelper {
         Size optimalSize = null;
         double minDiff = Double.MAX_VALUE;
 
-        int targetHeight = height;
-
         for (Size size : sizes) {
-//            if (size.getWidth() == width && size.getHeight() == height)
-//                return size;
 
             double ratio = (double) size.getHeight() / size.getWidth();
 
             if (Math.abs(ratio - targetRatio) < MIN_TOLERANCE) MIN_TOLERANCE = ratio;
             else continue;
 
-            if (Math.abs(size.getHeight() - targetHeight) < minDiff) {
+            if (Math.abs(size.getHeight() - height) < minDiff) {
                 optimalSize = size;
-                minDiff = Math.abs(size.getHeight() - targetHeight);
+                minDiff = Math.abs(size.getHeight() - height);
             }
         }
 
         if (optimalSize == null) {
             minDiff = Double.MAX_VALUE;
             for (Size size : sizes) {
-                if (Math.abs(size.getHeight() - targetHeight) < minDiff) {
+                if (Math.abs(size.getHeight() - height) < minDiff) {
                     optimalSize = size;
-                    minDiff = Math.abs(size.getHeight() - targetHeight);
+                    minDiff = Math.abs(size.getHeight() - height);
                 }
             }
         }
@@ -350,7 +327,7 @@ public final class CameraHelper {
     }
 
     private static double calculateApproximateVideoSize(CamcorderProfile camcorderProfile, int seconds) {
-        return ((camcorderProfile.videoBitRate / (float) 1 + camcorderProfile.audioBitRate / (float) 1) * seconds) / (float) 8;
+        return ((camcorderProfile.videoBitRate + camcorderProfile.audioBitRate) * seconds) / (float) 8;
     }
 
     public static double calculateApproximateVideoDuration(CamcorderProfile camcorderProfile, long maxFileSize) {
@@ -379,8 +356,8 @@ public final class CameraHelper {
                 AwesomeCamConfiguration.MEDIA_QUALITY_LOW, AwesomeCamConfiguration.MEDIA_QUALITY_LOWEST};
 
         CamcorderProfile camcorderProfile;
-        for (int i = 0; i < qualities.length; ++i) {
-            camcorderProfile = CameraHelper.getCamcorderProfile(qualities[i], currentCameraId);
+        for (int quality : qualities) {
+            camcorderProfile = CameraHelper.getCamcorderProfile(quality, currentCameraId);
             double fileSize = CameraHelper.calculateApproximateVideoSize(camcorderProfile, minimumDurationInSeconds);
 
             if (fileSize > maximumFileSize) {
@@ -405,50 +382,34 @@ public final class CameraHelper {
     }
 
     public static CamcorderProfile getCamcorderProfile(@AwesomeCamConfiguration.MediaQuality int mediaQuality, int cameraId) {
-        if (Build.VERSION.SDK_INT > 10) {
-            if (mediaQuality == AwesomeCamConfiguration.MEDIA_QUALITY_HIGHEST) {
-                return CamcorderProfile.get(cameraId, CamcorderProfile.QUALITY_HIGH);
-            } else if (mediaQuality == AwesomeCamConfiguration.MEDIA_QUALITY_HIGH) {
-                if (CamcorderProfile.hasProfile(cameraId, CamcorderProfile.QUALITY_1080P)) {
-                    return CamcorderProfile.get(cameraId, CamcorderProfile.QUALITY_1080P);
-                } else if (CamcorderProfile.hasProfile(cameraId, CamcorderProfile.QUALITY_720P)) {
-                    return CamcorderProfile.get(cameraId, CamcorderProfile.QUALITY_720P);
-                } else {
-                    return CamcorderProfile.get(cameraId, CamcorderProfile.QUALITY_HIGH);
-                }
-            } else if (mediaQuality == AwesomeCamConfiguration.MEDIA_QUALITY_MEDIUM) {
-                if (CamcorderProfile.hasProfile(cameraId, CamcorderProfile.QUALITY_720P)) {
-                    return CamcorderProfile.get(cameraId, CamcorderProfile.QUALITY_720P);
-                } else if (CamcorderProfile.hasProfile(cameraId, CamcorderProfile.QUALITY_480P)) {
-                    return CamcorderProfile.get(cameraId, CamcorderProfile.QUALITY_480P);
-                } else {
-                    return CamcorderProfile.get(cameraId, CamcorderProfile.QUALITY_LOW);
-                }
-            } else if (mediaQuality == AwesomeCamConfiguration.MEDIA_QUALITY_LOW) {
-                if (CamcorderProfile.hasProfile(cameraId, CamcorderProfile.QUALITY_480P)) {
-                    return CamcorderProfile.get(cameraId, CamcorderProfile.QUALITY_480P);
-                } else {
-                    return CamcorderProfile.get(cameraId, CamcorderProfile.QUALITY_LOW);
-                }
-            } else if (mediaQuality == AwesomeCamConfiguration.MEDIA_QUALITY_LOWEST) {
-                return CamcorderProfile.get(cameraId, CamcorderProfile.QUALITY_LOW);
+        if (mediaQuality == AwesomeCamConfiguration.MEDIA_QUALITY_HIGHEST) {
+            return CamcorderProfile.get(cameraId, CamcorderProfile.QUALITY_HIGH);
+        } else if (mediaQuality == AwesomeCamConfiguration.MEDIA_QUALITY_HIGH) {
+            if (CamcorderProfile.hasProfile(cameraId, CamcorderProfile.QUALITY_1080P)) {
+                return CamcorderProfile.get(cameraId, CamcorderProfile.QUALITY_1080P);
+            } else if (CamcorderProfile.hasProfile(cameraId, CamcorderProfile.QUALITY_720P)) {
+                return CamcorderProfile.get(cameraId, CamcorderProfile.QUALITY_720P);
             } else {
                 return CamcorderProfile.get(cameraId, CamcorderProfile.QUALITY_HIGH);
             }
+        } else if (mediaQuality == AwesomeCamConfiguration.MEDIA_QUALITY_MEDIUM) {
+            if (CamcorderProfile.hasProfile(cameraId, CamcorderProfile.QUALITY_720P)) {
+                return CamcorderProfile.get(cameraId, CamcorderProfile.QUALITY_720P);
+            } else if (CamcorderProfile.hasProfile(cameraId, CamcorderProfile.QUALITY_480P)) {
+                return CamcorderProfile.get(cameraId, CamcorderProfile.QUALITY_480P);
+            } else {
+                return CamcorderProfile.get(cameraId, CamcorderProfile.QUALITY_LOW);
+            }
+        } else if (mediaQuality == AwesomeCamConfiguration.MEDIA_QUALITY_LOW) {
+            if (CamcorderProfile.hasProfile(cameraId, CamcorderProfile.QUALITY_480P)) {
+                return CamcorderProfile.get(cameraId, CamcorderProfile.QUALITY_480P);
+            } else {
+                return CamcorderProfile.get(cameraId, CamcorderProfile.QUALITY_LOW);
+            }
+        } else if (mediaQuality == AwesomeCamConfiguration.MEDIA_QUALITY_LOWEST) {
+            return CamcorderProfile.get(cameraId, CamcorderProfile.QUALITY_LOW);
         } else {
-            if (mediaQuality == AwesomeCamConfiguration.MEDIA_QUALITY_HIGHEST) {
-                return CamcorderProfile.get(cameraId, CamcorderProfile.QUALITY_HIGH);
-            } else if (mediaQuality == AwesomeCamConfiguration.MEDIA_QUALITY_HIGH) {
-                return CamcorderProfile.get(cameraId, CamcorderProfile.QUALITY_HIGH);
-            } else if (mediaQuality == AwesomeCamConfiguration.MEDIA_QUALITY_MEDIUM) {
-                return CamcorderProfile.get(cameraId, CamcorderProfile.QUALITY_LOW);
-            } else if (mediaQuality == AwesomeCamConfiguration.MEDIA_QUALITY_LOW) {
-                return CamcorderProfile.get(cameraId, CamcorderProfile.QUALITY_LOW);
-            } else if (mediaQuality == AwesomeCamConfiguration.MEDIA_QUALITY_LOWEST) {
-                return CamcorderProfile.get(cameraId, CamcorderProfile.QUALITY_LOW);
-            } else {
-                return CamcorderProfile.get(cameraId, CamcorderProfile.QUALITY_HIGH);
-            }
+            return CamcorderProfile.get(cameraId, CamcorderProfile.QUALITY_HIGH);
         }
     }
 

@@ -2,8 +2,7 @@ package com.farukcankaya.awesomecam.internal.manager;
 
 import android.content.Context;
 
-import java.io.File;
-
+import com.anggrayudi.storage.media.MediaFile;
 import com.farukcankaya.awesomecam.internal.configuration.AwesomeCamConfiguration;
 import com.farukcankaya.awesomecam.internal.configuration.ConfigurationProvider;
 import com.farukcankaya.awesomecam.internal.manager.impl.CameraHandler;
@@ -27,9 +26,9 @@ public interface CameraManager<CameraId, SurfaceListener, CameraParameters, Came
 
     void setFlashMode(@AwesomeCamConfiguration.FlashMode int flashMode);
 
-    void takePhoto(File photoFile, CameraPhotoListener cameraPhotoListener);
+    void takePhoto(MediaFile photoMediaFile, CameraPhotoListener cameraPhotoListener);
 
-    void startVideoRecord(File videoFile, CameraVideoListener cameraVideoListener);
+    void startVideoRecord(MediaFile videoMediaFile, CameraVideoListener cameraVideoListener);
 
     Size getPhotoSizeForQuality(@AwesomeCamConfiguration.MediaQuality int mediaQuality);
 

@@ -1,22 +1,12 @@
 package com.farukcankaya.awesomecam.internal.ui.preview;
 
-import com.farukcankaya.awesomecam.R;
-import com.farukcankaya.awesomecam.internal.configuration.AwesomeCamConfiguration;
-import com.farukcankaya.awesomecam.internal.ui.BaseAwesomeCamActivity;
-import com.farukcankaya.awesomecam.internal.ui.view.AspectFrameLayout;
-import com.farukcankaya.awesomecam.internal.utils.AwesomeCamImageLoader;
-import com.farukcankaya.awesomecam.internal.utils.Utils;
-
 import android.content.Context;
 import android.content.Intent;
 import android.media.AudioManager;
 import android.media.MediaPlayer;
+import android.net.Uri;
 import android.os.Bundle;
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
-import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
-import android.view.MotionEvent;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.View;
@@ -26,14 +16,23 @@ import android.widget.ImageView;
 import android.widget.MediaController;
 import android.widget.TextView;
 
-import java.io.File;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.appcompat.app.AppCompatActivity;
+
+import com.anggrayudi.storage.media.MediaFile;
+import com.farukcankaya.awesomecam.R;
+import com.farukcankaya.awesomecam.internal.configuration.AwesomeCamConfiguration;
+import com.farukcankaya.awesomecam.internal.ui.BaseAwesomeCamActivity;
+import com.farukcankaya.awesomecam.internal.ui.view.AspectFrameLayout;
+import com.farukcankaya.awesomecam.internal.utils.AwesomeCamImageLoader;
 
 public class PreviewActivity extends AppCompatActivity implements View.OnClickListener {
 
     private static final String TAG = "PreviewActivity";
 
     protected final static String MEDIA_ACTION_ARG = "media_action_arg";
-    protected final static String FILE_PATH_ARG = "file_path_arg";
+    protected final static String FILE_URI_ARG = "file_uri_arg";
     protected final static String HIDE_CAPTURE_BUTTONS_ARG = "hide_capture_buttons_arg";
     protected final static String RESPONSE_CODE_ARG = "response_code_arg";
     private final static String VIDEO_POSITION_ARG = "current_video_position";
@@ -41,13 +40,11 @@ public class PreviewActivity extends AppCompatActivity implements View.OnClickLi
     private final static String MIME_TYPE_VIDEO = "video";
     private final static String MIME_TYPE_IMAGE = "image";
 
-    private int mediaAction;
-    protected String previewFilePath;
+    protected Uri previewFileUri;
     protected boolean hideCaptureButtons;
 
     protected SurfaceView surfaceView;
     private FrameLayout photoPreviewContainer;
-    private ImageView imagePreview;
     private ViewGroup buttonPanel;
     private AspectFrameLayout videoPreviewContainer;
     private View cropMediaAction;
@@ -139,20 +136,20 @@ public class PreviewActivity extends AppCompatActivity implements View.OnClickLi
 
     public static Intent newIntent(Context context,
                                    @AwesomeCamConfiguration.MediaAction int mediaAction,
-                                   String filePath) {
+                                   Uri fileUri) {
 
         return new Intent(context, PreviewActivity.class)
                 .putExtra(MEDIA_ACTION_ARG, mediaAction)
-                .putExtra(FILE_PATH_ARG, filePath);
+                .putExtra(FILE_URI_ARG, String.valueOf(fileUri));
     }
 
     public static Intent newIntent(Context context,
                                    @AwesomeCamConfiguration.MediaAction int mediaAction,
-                                   String filePath, boolean hideCaptureButtons) {
+                                   Uri fileUri, boolean hideCaptureButtons) {
 
         return new Intent(context, PreviewActivity.class)
                 .putExtra(MEDIA_ACTION_ARG, mediaAction)
-                .putExtra(FILE_PATH_ARG, filePath)
+                .putExtra(FILE_URI_ARG, String.valueOf(fileUri))
                 .putExtra(HIDE_CAPTURE_BUTTONS_ARG, hideCaptureButtons);
     }
 
@@ -166,19 +163,16 @@ public class PreviewActivity extends AppCompatActivity implements View.OnClickLi
         ratios = new float[]{0f, 1f, 4f / 3f, 16f / 9f};
 
         surfaceView = (SurfaceView) findViewById(R.id.video_preview);
-        surfaceView.setOnTouchListener(new View.OnTouchListener() {
-            @Override
-            public boolean onTouch(View v, MotionEvent event) {
-                if (mediaController == null) return false;
-                if (mediaController.isShowing()) {
-                    mediaController.hide();
-                    showButtonPanel(true);
-                } else {
-                    showButtonPanel(false);
-                    mediaController.show();
-                }
-                return false;
+        surfaceView.setOnTouchListener((v, event) -> {
+            if (mediaController == null) return false;
+            if (mediaController.isShowing()) {
+                mediaController.hide();
+                showButtonPanel(true);
+            } else {
+                showButtonPanel(false);
+                mediaController.show();
             }
+            return false;
         });
 
         videoPreviewContainer = (AspectFrameLayout) findViewById(R.id.previewAspectFrameLayout);
@@ -189,22 +183,16 @@ public class PreviewActivity extends AppCompatActivity implements View.OnClickLi
         View cancelMediaAction = findViewById(R.id.cancel_media_action);
         cropMediaAction = findViewById(R.id.crop_image);
         ratioChanger = (TextView) findViewById(R.id.ratio_image);
-        ratioChanger.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                currentRatioIndex = (currentRatioIndex + 1) % ratios.length;
-                ratioChanger.setText(ratioLabels[currentRatioIndex]);
-            }
+        ratioChanger.setOnClickListener(v -> {
+            currentRatioIndex = (currentRatioIndex + 1) % ratios.length;
+            ratioChanger.setText(ratioLabels[currentRatioIndex]);
         });
 
         cropMediaAction.setVisibility(View.GONE);
         ratioChanger.setVisibility(View.GONE);
 
         if (cropMediaAction != null)
-            cropMediaAction.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View view) {
-                }
+            cropMediaAction.setOnClickListener(view -> {
             });
 
         if (confirmMediaResult != null)
@@ -218,8 +206,8 @@ public class PreviewActivity extends AppCompatActivity implements View.OnClickLi
 
         Bundle args = getIntent().getExtras();
 
-        mediaAction = args.getInt(MEDIA_ACTION_ARG);
-        previewFilePath = args.getString(FILE_PATH_ARG);
+        int mediaAction = args.getInt(MEDIA_ACTION_ARG);
+        previewFileUri = Uri.parse(args.getString(FILE_URI_ARG));
         hideCaptureButtons = args.getBoolean(HIDE_CAPTURE_BUTTONS_ARG);
 
         if (mediaAction == AwesomeCamConfiguration.MEDIA_ACTION_VIDEO) {
@@ -227,10 +215,10 @@ public class PreviewActivity extends AppCompatActivity implements View.OnClickLi
         } else if (mediaAction == AwesomeCamConfiguration.MEDIA_ACTION_PHOTO) {
             displayImage();
         } else {
-            String mimeType = Utils.getMimeType(previewFilePath);
-            if (mimeType.contains(MIME_TYPE_VIDEO)) {
+            String mimeType = new MediaFile(getApplicationContext(), previewFileUri).getMimeType();
+            if (mimeType != null && mimeType.contains(MIME_TYPE_VIDEO)) {
                 displayVideo(savedInstanceState);
-            } else if (mimeType.contains(MIME_TYPE_IMAGE)) {
+            } else if (mimeType != null && mimeType.contains(MIME_TYPE_IMAGE)) {
                 displayImage();
             } else finish();
         }
@@ -265,9 +253,9 @@ public class PreviewActivity extends AppCompatActivity implements View.OnClickLi
     }
 
     private void showImagePreview() {
-        imagePreview = new ImageView(this);
+        ImageView imagePreview = new ImageView(this);
         AwesomeCamImageLoader.Builder builder = new AwesomeCamImageLoader.Builder(this);
-        builder.load(previewFilePath).build().into(imagePreview);
+        builder.load(previewFileUri).build().into(imagePreview);
         photoPreviewContainer.removeAllViews();
         photoPreviewContainer.addView(imagePreview);
     }
@@ -285,38 +273,32 @@ public class PreviewActivity extends AppCompatActivity implements View.OnClickLi
     private void showVideoPreview(SurfaceHolder holder) {
         try {
             mediaPlayer = new MediaPlayer();
-            mediaPlayer.setDataSource(previewFilePath);
+            mediaPlayer.setDataSource(getApplicationContext(), previewFileUri);
             mediaPlayer.setDisplay(holder);
             mediaPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
-            mediaPlayer.setOnPreparedListener(new MediaPlayer.OnPreparedListener() {
-                @Override
-                public void onPrepared(MediaPlayer mp) {
-                    mediaController = new MediaController(PreviewActivity.this);
-                    mediaController.setAnchorView(surfaceView);
-                    mediaController.setMediaPlayer(MediaPlayerControlImpl);
-                    mediaController.show();
+            mediaPlayer.setOnPreparedListener(mp -> {
+                mediaController = new MediaController(PreviewActivity.this);
+                mediaController.setAnchorView(surfaceView);
+                mediaController.setMediaPlayer(MediaPlayerControlImpl);
+                mediaController.show();
 
-                    int videoWidth = mp.getVideoWidth();
-                    int videoHeight = mp.getVideoHeight();
+                int videoWidth = mp.getVideoWidth();
+                int videoHeight = mp.getVideoHeight();
 
-                    videoPreviewContainer.setAspectRatio((double) videoWidth / videoHeight);
+                videoPreviewContainer.setAspectRatio((double) videoWidth / videoHeight);
 
-                    mediaPlayer.start();
-                    mediaPlayer.seekTo(currentPlaybackPosition);
+                mediaPlayer.start();
+                mediaPlayer.seekTo(currentPlaybackPosition);
 
-                    if (!isVideoPlaying)
-                        mediaPlayer.pause();
-
-                    // TODO: pause default
+                if (!isVideoPlaying)
                     mediaPlayer.pause();
-                }
+
+                // TODO: pause default
+                mediaPlayer.pause();
             });
-            mediaPlayer.setOnErrorListener(new MediaPlayer.OnErrorListener() {
-                @Override
-                public boolean onError(MediaPlayer mp, int what, int extra) {
-                    finish();
-                    return true;
-                }
+            mediaPlayer.setOnErrorListener((mp, what, extra) -> {
+                finish();
+                return true;
             });
             mediaPlayer.prepareAsync();
         } catch (Exception e) {
@@ -349,7 +331,8 @@ public class PreviewActivity extends AppCompatActivity implements View.OnClickLi
     public void onClick(View view) {
         Intent resultIntent = new Intent();
         if (view.getId() == R.id.confirm_media_result) {
-            resultIntent.putExtra(RESPONSE_CODE_ARG, BaseAwesomeCamActivity.ACTION_CONFIRM).putExtra(FILE_PATH_ARG, previewFilePath);
+            resultIntent.putExtra(RESPONSE_CODE_ARG, BaseAwesomeCamActivity.ACTION_CONFIRM)
+                        .putExtra(FILE_URI_ARG, String.valueOf(previewFileUri));
         } else if (view.getId() == R.id.re_take_media) {
             deleteMediaFile();
             resultIntent.putExtra(RESPONSE_CODE_ARG, BaseAwesomeCamActivity.ACTION_RETAKE);
@@ -368,8 +351,7 @@ public class PreviewActivity extends AppCompatActivity implements View.OnClickLi
     }
 
     protected boolean deleteMediaFile() {
-        File mediaFile = new File(previewFilePath);
-        return mediaFile.delete();
+        return new MediaFile(getApplicationContext(), previewFileUri).delete();
     }
 
     public static boolean isResultConfirm(@NonNull Intent resultIntent) {
@@ -377,7 +359,7 @@ public class PreviewActivity extends AppCompatActivity implements View.OnClickLi
     }
 
     public static String getMediaFilePatch(@NonNull Intent resultIntent) {
-        return resultIntent.getStringExtra(FILE_PATH_ARG);
+        return resultIntent.getStringExtra(FILE_URI_ARG);
     }
 
     public static boolean isResultRetake(@NonNull Intent resultIntent) {
